@@ -14,7 +14,7 @@
     "prisma:studio": "prisma studio --schema=src/prisma/schema.prisma"
   },
   "keywords": [],
-  "author": "",
+  "author": "Noorul Ahamed",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
