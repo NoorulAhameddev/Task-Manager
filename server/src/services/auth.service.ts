@@ -3,26 +3,32 @@ import { hashPassword, comparePassword } from '../utils/password';
 import { AppError } from '../utils/app-error';
 
 function excludePassword<T extends { password: string }>(user: T): Omit<T, 'password'> {
-  const { password: _, ...rest } = user;
+  const { password: _password, ...rest } = user;
   return rest;
 }
 
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export async function registerUser(name: string, email: string, password: string) {
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const normalizedEmail = normalizeEmail(email);
+  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) {
     throw new AppError('Email already in use', 409);
   }
 
   const hashed = await hashPassword(password);
   const user = await prisma.user.create({
-    data: { name, email, password: hashed },
+    data: { name, email: normalizedEmail, password: hashed },
   });
 
   return excludePassword(user);
 }
 
 export async function loginUser(email: string, password: string) {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const normalizedEmail = normalizeEmail(email);
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (!user) {
     throw new AppError('Invalid email or password', 401);
   }

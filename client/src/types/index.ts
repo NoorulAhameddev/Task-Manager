@@ -37,7 +37,7 @@ export interface CreateTaskData {
   description?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
-  dueDate?: string;
+  dueDate?: string | null;
 }
 
 export interface UpdateTaskData {
@@ -45,7 +45,7 @@ export interface UpdateTaskData {
   description?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
-  dueDate?: string;
+  dueDate?: string | null;
 }
 
 export interface TaskFilters {

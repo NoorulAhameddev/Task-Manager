@@ -13,6 +13,20 @@ function setRefreshCookie(res: Response, token: string) {
   });
 }
 
+function clearRefreshCookie(res: Response) {
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+}
+
+function userIdFromPayload(req: Request): string | undefined {
+  const payload = req.user;
+  if (typeof payload === 'string') return payload;
+  return payload?.id;
+}
+
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
     const { name, email, password } = req.body;
@@ -45,7 +59,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export async function refresh(req: Request, res: Response, next: NextFunction) {
+export async function refresh(req: Request, res: Response, _next: NextFunction) {
   try {
     const token = req.cookies?.refreshToken;
     if (!token) {
@@ -56,12 +70,19 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
     }
 
     const decoded = verifyRefreshToken(token);
-    const payload = typeof decoded === 'string' ? { sub: decoded } : decoded;
+    const payload = typeof decoded === 'string' ? { id: decoded } : decoded;
+
+    if (!payload.id) {
+      throw new Error('Refresh token payload missing user id');
+    }
+
+    await findUserById(payload.id);
 
     const accessToken = generateAccessToken({ id: payload.id });
 
     res.status(200).json({ accessToken });
   } catch {
+    clearRefreshCookie(res);
     res.status(401).json({
       error: { message: 'Invalid or expired refresh token', statusCode: 401 },
     });
@@ -69,18 +90,17 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function logout(_req: Request, res: Response) {
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-  });
+  clearRefreshCookie(res);
   res.status(200).json({ message: 'Logged out' });
 }
 
 export async function me(req: Request, res: Response, next: NextFunction) {
   try {
-    const payload = req.user;
-    const userId = typeof payload === 'string' ? payload : payload?.id;
+    const userId = userIdFromPayload(req);
+    if (!userId) {
+      res.status(401).json({ error: { message: 'Unauthorized', statusCode: 401 } });
+      return;
+    }
     const user = await findUserById(userId);
     res.status(200).json({ user });
   } catch (err) {

@@ -108,6 +108,7 @@ export function TasksPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="border rounded px-3 py-2"
+            aria-label="Filter by status"
           >
             <option value="">All Statuses</option>
             <option value="TODO">To Do</option>
@@ -119,6 +120,7 @@ export function TasksPage() {
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
             className="border rounded px-3 py-2"
+            aria-label="Filter by priority"
           >
             <option value="">All Priorities</option>
             <option value="LOW">Low</option>
@@ -130,6 +132,7 @@ export function TasksPage() {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             className="border rounded px-3 py-2"
+            aria-label="Sort tasks by field"
           >
             <option value="createdAt">Created At</option>
             <option value="dueDate">Due Date</option>
@@ -139,6 +142,7 @@ export function TasksPage() {
             value={order}
             onChange={(e) => setOrder(e.target.value)}
             className="border rounded px-3 py-2"
+            aria-label="Sort direction"
           >
             <option value="desc">Newest first</option>
             <option value="asc">Oldest first</option>
@@ -260,7 +264,7 @@ function TaskForm({
         description: description || undefined,
         status: status as TaskStatus,
         priority: priority as TaskPriority,
-        dueDate: dueDate || undefined,
+        dueDate: dueDate || null,
       });
     } catch (err) {
       const axiosErr = err as AxiosError<ApiError>;

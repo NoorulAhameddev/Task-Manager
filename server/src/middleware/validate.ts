@@ -1,15 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import { ZodSchema } from 'zod';
+
+function formatIssues(error: { issues: Array<{ path: PropertyKey[]; message: string }> }) {
+  return error.issues.map((issue) => ({
+    field: issue.path.join('.'),
+    message: issue.message,
+  }));
+}
 
 export function validate(schema: ZodSchema) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
-      const errors = (result.error as ZodError).issues.map((issue) => ({
-        field: issue.path.join('.'),
-        message: issue.message,
-      }));
-      res.status(400).json({ error: { message: 'Validation failed', errors } });
+      res.status(400).json({
+        error: { message: 'Validation failed', errors: formatIssues(result.error) },
+      });
       return;
     }
     req.body = result.data;
@@ -21,14 +26,12 @@ export function validateQuery(schema: ZodSchema) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.query);
     if (!result.success) {
-      const errors = (result.error as ZodError).issues.map((issue) => ({
-        field: issue.path.join('.'),
-        message: issue.message,
-      }));
-      res.status(400).json({ error: { message: 'Validation failed', errors } });
+      res.status(400).json({
+        error: { message: 'Validation failed', errors: formatIssues(result.error) },
+      });
       return;
     }
-    (req as any).validatedQuery = result.data;
+    req.validatedQuery = result.data as Record<string, unknown>;
     next();
   };
 }

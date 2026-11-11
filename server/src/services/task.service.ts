@@ -1,22 +1,32 @@
+import { Prisma, TaskPriority, TaskStatus } from '@prisma/client';
 import prisma from '../prisma/client';
 import { AppError } from '../utils/app-error';
 
 type CreateData = {
   title: string;
   description?: string;
-  status?: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
-  dueDate?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  dueDate?: string | null;
 };
 
 type UpdateData = Partial<CreateData>;
 
 type TaskFilters = {
-  status?: string;
-  priority?: string;
-  sortBy?: string;
-  order?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  sortBy?: 'dueDate' | 'createdAt';
+  order?: 'asc' | 'desc';
 };
+
+export type { TaskFilters };
+
+function toPrismaWhere(filters: TaskFilters): Prisma.TaskWhereInput {
+  return {
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.priority ? { priority: filters.priority } : {}),
+  };
+}
 
 export async function createTask(userId: string, data: CreateData) {
   const task = await prisma.task.create({
@@ -37,11 +47,7 @@ export async function getTasks(userId: string, filters: TaskFilters) {
   const order = filters.order === 'asc' ? 'asc' : 'desc';
 
   const tasks = await prisma.task.findMany({
-    where: {
-      userId,
-      ...(filters.status ? { status: filters.status as any } : {}),
-      ...(filters.priority ? { priority: filters.priority as any } : {}),
-    },
+    where: { userId, ...toPrismaWhere(filters) },
     orderBy: { [sortBy]: order },
   });
   return tasks;
@@ -70,9 +76,11 @@ export async function updateTask(userId: string, taskId: string, data: UpdateDat
     data: {
       ...(data.title !== undefined ? { title: data.title } : {}),
       ...(data.description !== undefined ? { description: data.description } : {}),
-      ...(data.status !== undefined ? { status: data.status as any } : {}),
-      ...(data.priority !== undefined ? { priority: data.priority as any } : {}),
-      ...(data.dueDate !== undefined ? { dueDate: new Date(data.dueDate) } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.priority !== undefined ? { priority: data.priority } : {}),
+      ...(data.dueDate !== undefined
+        ? { dueDate: data.dueDate === null ? null : new Date(data.dueDate) }
+        : {}),
     },
   });
   return task;
